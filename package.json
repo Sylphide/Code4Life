@@ -1,0 +1,19 @@
+{
+  "name": "es6-skeleton",
+  "version": "1.0.0",
+  "description": "Es6 basic project",
+  "main": "index.js",
+  "scripts": {
+    "build": "gulp"
+  },
+  "author": "Berger Jean-Baptiste <jibberger@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-preset-es2015": "^6.3.13",
+    "babelify": "^7.2.0",
+    "browserify": "^12.0.1",
+    "gulp": "^3.9.0",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
