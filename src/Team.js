@@ -102,8 +102,11 @@ export default class Team {
                 return;
               }
             } else {
-              buster.goTo(closestEnnemy.x, closestEnnemy.y);
-              return;
+              const nbTurnToGo = Math.ceil((ennemyDistance - 1760) / 800);
+              if (buster.isStunAvailable() || buster.stunCD < nbTurnToGo) {
+                buster.goTo(closestEnnemy.x, closestEnnemy.y);
+                return;
+              }
             }
           }
         }
@@ -113,7 +116,9 @@ export default class Team {
         let closest;
         let minDist;
         inSigh.forEach(({ currentEntity, currentDist }) => {
-          if (!currentEntity.giveUp && (!closest || currentEntity.state < closest.state || currentDist < minDist)) {
+          const nbTurnToGo = Math.ceil((currentDist - 1760) / 800);
+          if (!currentEntity.giveUp &&
+            (!closest || (currentEntity.state < closest.state && closest.state - closest.value * nbTurnToGo > 0))) {
             closest = currentEntity;
             minDist = currentDist;
           }
@@ -128,8 +133,9 @@ export default class Team {
             this.goToBase(buster);
           } else {
             const nbTurnToGo = Math.ceil((minDist - 1760) / 800);
-            if (closest.state - closest.value * nbTurnToGo > 0
-              && (closest.value !== 0 || minDist < 2200)
+            if (closest.value > 0 && closest.state - closest.value * nbTurnToGo > 0
+              || minDist < 2200
+              // && (closest.value !== 0 || minDist < 2200)
               // || closest.value === 1
             ) {
               buster.goTo(closest.x, closest.y);
