@@ -1,0 +1,16 @@
+{
+  "parser": "babel-eslint",
+  "extends": "airbnb-base",
+  "rules": {
+    "no-constant-condition": 0,
+    "radix": 0,
+    "max-len": 0,
+    "comma-dangle": 0,
+    "no-param-reassign": 0
+  },
+  "globals": {
+    "readline": true,
+    "print": true,
+    "printErr": true
+  }
+}
