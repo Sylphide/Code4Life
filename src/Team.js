@@ -103,15 +103,19 @@ export default class Team {
             const ghost = mapData.getGhost(closestEnnemy.value);
             if (ghost) {
               ghost.giveUp = false;
+            } else if (closestEnnemy.value !== -1) {
+              const estimatedNextPos = getNextPos([closestEnnemy.x, closestEnnemy.y], [this.ennemyX, this.ennemyY]);
+              mapData.createOrUpdateGhost(closestEnnemy.value, estimatedNextPos.x, estimatedNextPos.y, 0, 0);
             }
             return;
           } else if (ennemyDistance < 2200) {
-            const ennemyToBase = getDistance2([closestEnnemy.x, closestEnnemy.y], [this.ennemyX, this.ennemyY]);
-            let distanceToEnnemyBase = getDistance2([buster.x, buster.y], [this.ennemyX, this.ennemyY]);
+            let ennemyToBase = getDistance2([closestEnnemy.x, closestEnnemy.y], [this.ennemyX, this.ennemyY]);
+            const distanceToEnnemyBase = getDistance2([buster.x, buster.y], [this.ennemyX, this.ennemyY]);
             if (closestEnnemy.state === 1 && distanceToEnnemyBase > ennemyToBase) {
-              distanceToEnnemyBase = this.goToBase(buster, true);
-              printErr('Nb turn to base to intercept', Math.ceil(distanceToEnnemyBase / 800), distanceToEnnemyBase);
-              if (Math.ceil(distanceToEnnemyBase / 800) > buster.stunCD) {
+              this.goToBase(buster, true);
+              ennemyToBase = this.goToBase(closestEnnemy, true);
+              printErr('Nb turn to base to intercept', Math.ceil(ennemyToBase / 800), ennemyToBase);
+              if (Math.ceil(ennemyToBase / 800) - 1 > buster.stunCD) {
                 return;
               }
             } else {
@@ -160,6 +164,7 @@ export default class Team {
             const nbTurnToGo = Math.ceil((minDist - 1760) / 800);
             if (closest.value > 0 && closest.state - closest.value * nbTurnToGo > 0
               || closest.value === 0 && closest.state - nbTurnToGo > 0
+              || closest.state === 0
               || minDist < 2200
             ) {
               buster.goTo(closest.x, closest.y);

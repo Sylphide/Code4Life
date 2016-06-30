@@ -8,7 +8,6 @@ class MapData {
     this.ghosts = [];
     this.grid = [];
     this.stealers = [];
-    this.firstUpdatedStealers = 10;
     this.score = 0;
     for (let i = 0; i < 48; i++) {
       const x = 1000 + 2000 * (i % 8);
@@ -33,7 +32,6 @@ class MapData {
   clearInstantData() {
     this.sighedGhosts = [];
     this.sighedBusters = [];
-    this.firstUpdatedStealers = 10;
     this.grid.forEach((cell) => {
       cell.searched = false;
     });
