@@ -39,6 +39,7 @@ export default class Entity {
     this.action = `STUN ${id}`;
     this.destination = null;
     this.stunCD = 21;
+    printErr('Setting stun CD', this.id);
   }
 
   isInBaseRange() {
@@ -49,7 +50,7 @@ export default class Entity {
   }
 
   isStunAvailable() {
-    return this.stunCD === 0;
+    return this.stunCD === 0 || this.stunCD === 21;
   }
 
   toString() {

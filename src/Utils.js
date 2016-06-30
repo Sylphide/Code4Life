@@ -8,12 +8,12 @@ export function getDistance(entity1, entity2) {
   return getDistance2([entity1.x, entity1.y], [entity2.x, entity2.y]);
 }
 
-export function getClosest(entity, entities, exceptId = -1) {
+export function getClosest(entity, entities, exceptId = -1, exceptState = -1) {
   let minDist = 100000;
   let closest = null;
   entities.forEach((currentEntity) => {
     const currentDist = getDistance(entity, currentEntity);
-    if (minDist > currentDist && currentEntity.id !== exceptId) {
+    if (minDist > currentDist && currentEntity.id !== exceptId && currentEntity.state !== exceptState) {
       minDist = currentDist;
       closest = currentEntity;
     }
@@ -85,5 +85,54 @@ export function cleanCoords(x, y) {
   return {
     x: cleanX,
     y: cleanY
+  };
+}
+
+function roundForDest(sourceX, sourceY, destX, destY) {
+  let roundX = Math.floor;
+  let roundY = Math.floor;
+  if (sourceX > destX) {
+    roundX = Math.ceil;
+  }
+  if (sourceY > destY) {
+    roundY = Math.ceil;
+  }
+  return {
+    roundX,
+    roundY
+  };
+}
+
+export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799) {
+  const roundFunc = roundForDest(sourceX, sourceY, destX, destY);
+  if ((sourceX - destX) !== 0) {
+    const a = (sourceY - destY) / (sourceX - destX);
+    const b = sourceY - a * sourceX;
+    const A = 1 + Math.pow(a, 2);
+    const B = 2 * (a * (b - sourceY) - sourceX);
+    const C = Math.pow(sourceX, 2) +
+      Math.pow((b - sourceY), 2) - Math.pow(dist, 2);
+    const delta = Math.pow(B, 2) - 4 * A * C;
+    const x1 = roundFunc.roundX((- B - Math.sqrt(delta)) / (2 * A));
+    const x2 = roundFunc.roundX((- B + Math.sqrt(delta)) / (2 * A));
+    const y1 = roundFunc.roundY(a * x1 + b);
+    const y2 = roundFunc.roundY(a * x2 + b);
+    const distance1 = getDistance2([destX, destY], [x1, y1]);
+    const distance2 = getDistance2([destX, destY], [x2, y2]);
+    printErr(x1, y1, distance1, x2, y2, distance2);
+    if (distance1 < distance2) {
+      return {
+        x: x1,
+        y: y1
+      };
+    }
+    return {
+      x: x2,
+      y: y2
+    };
+  }
+  return {
+    x: sourceX,
+    y: sourceY < destY ? sourceY + 800 : sourceY - 800
   };
 }
