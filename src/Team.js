@@ -1,6 +1,6 @@
 import Entity from './Entity';
-import { getClosest, getCell, getDistance2, getSighed, getDistance, getClosestFrom } from './Utils';
-import { mapData, quickAccess } from './MapData';
+import { getClosest, getCell, getDistance2, getDistance, roundForBase } from './Utils';
+import { mapData } from './MapData';
 
 export default class Team {
 
@@ -31,8 +31,14 @@ export default class Team {
         if (!buster.isStunAvailable()) {
           buster.stunCD--;
         }
-        if (!buster.destination || (buster.x === buster.destination.x && buster.y === buster.destination.y)) {
+        if (!buster.destination) {
           buster.currentAction = 'IDLE';
+        } else {
+          const destinationCell = getCell(buster.destination.x, buster.destination.y);
+          const busterCell = getCell(buster.x, buster.y);
+          if (busterCell.x === destinationCell.x && busterCell.y === destinationCell.y) {
+            buster.currentAction = 'IDLE';
+          }
         }
         found = true;
       }
@@ -98,11 +104,13 @@ export default class Team {
             let distanceToBase = getDistance2([buster.x, buster.y], [this.ennemyX, this.ennemyY]);
             if (closestEnnemy.state === 1 && distanceToBase > ennemyToBase) {
               distanceToBase = this.goToBase(buster, true);
+              printErr('Nb turn to base to intercept', Math.ceil(distanceToBase / 800), distanceToBase);
               if (Math.ceil(distanceToBase / 800) > buster.stunCD) {
                 return;
               }
             } else {
               const nbTurnToGo = Math.ceil((ennemyDistance - 1760) / 800);
+              printErr('Nb turn to ennemy to intercept', nbTurnToGo, ennemyDistance);
               if (buster.isStunAvailable() || buster.stunCD < nbTurnToGo) {
                 buster.goTo(closestEnnemy.x, closestEnnemy.y);
                 return;
@@ -112,38 +120,28 @@ export default class Team {
         }
 
         printErr(mapData.ghosts.map((ghost) => ghost.toString()));
-        const inSigh = getSighed(buster, mapData.ghosts);
-        let closest;
-        let minDist;
-        inSigh.forEach(({ currentEntity, currentDist }) => {
-          // const nbTurnToGo = Math.ceil((currentDist - 1760) / 800);
-          if (!currentEntity.giveUp &&
-            (!closest
-              // || (currentEntity.state < closest.state && closest.state - closest.value * nbTurnToGo > 0)
-              || currentEntity.state < closest.state
-              || currentDist < minDist
-            )) {
-            closest = currentEntity;
-            minDist = currentDist;
-          }
-        });
-        if (!closest) {
-          ({ closest, minDist } = getClosest(buster, mapData.ghosts));
-        }
+        const { closest, minDist } = getClosest(buster, mapData.ghosts);
         if (closest && !closest.giveUp) {
+          printErr('Go for', closest.id);
           if (minDist < 1760 && minDist >= 900) {
             buster.bust(closest.id);
+            if (buster.state !== 3) {
+              closest.value++;
+              buster.value = closest.id;
+              buster.state = 3;
+            }
           } else if (minDist < 900) {
             this.goToBase(buster);
           } else {
             const nbTurnToGo = Math.ceil((minDist - 1760) / 800);
             if (closest.value > 0 && closest.state - closest.value * nbTurnToGo > 0
+              || closest.value === 0 && closest.state - nbTurnToGo > 0
               || minDist < 2200
-              // && (closest.value !== 0 || minDist < 2200)
-              // || closest.value === 1
             ) {
               buster.goTo(closest.x, closest.y);
             } else {
+              printErr('Too far');
+              buster.currentAction = 'IDLE';
               this.search(buster);
             }
           }
@@ -170,9 +168,29 @@ export default class Team {
       this.avoid(buster, closestEnnemy);
       return;
     }
+    // if (!this.passeLaBalle(buster)) {
     this.goToBase(buster);
+    // }
     return;
   }
+
+  // passeLaBalle(buster) {
+  //   const { closest: closestTeam, minDist: teamDistance }
+  //     = getClosest(buster, this.busters, buster.id);
+  //   if (closestTeam) {
+  //     const distanceToBaseMe = getDistance2([buster.x, buster.y], [this.x, this.y]);
+  //     const distanceToBaseTeam = getDistance2([closestTeam.x, closestTeam.y], [this.x, this.y]);
+  //     if (distanceToBaseMe > distanceToBaseTeam && teamDistance < 1760 && teamDistance > 800) {
+  //       buster.release();
+  //       mapData.score--;
+  //       closestTeam.bust(buster.value);
+  //       printErr(closestTeam.id, 'busting', buster.value);
+  //       mapData.createOrUpdateGhost(buster.value, buster.x, buster.y, 0, 1);
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // }
 
   shouldDefendLast(buster) {
     if (mapData.score === ((mapData.nbGhosts - 1) / 2)) {
@@ -180,6 +198,7 @@ export default class Team {
       let minDist = 100000;
       this.busters.forEach((currentBuster) => {
         const distance = getDistance(buster, currentBuster);
+        // printErr(currentBuster.action);
         if (currentBuster.state === 1 && currentBuster.action !== 'RELEASE' && distance < minDist) {
           carryingBuster = currentBuster;
           minDist = distance;
@@ -192,6 +211,7 @@ export default class Team {
         if (closestEnnemy
           && ennemyDistance < 1760 && buster.isStunAvailable()) {
           buster.stun(closestEnnemy.id);
+          closestEnnemy.state = 2;
         } else {
           buster.goTo(carryingBuster.x, carryingBuster.y);
         }
@@ -217,7 +237,6 @@ export default class Team {
       ennemyTrapping = ghost.value - teamTrapping;
     }
     if (closestEnnemy
-      // && (closestEnnemy.state === 1 || closestEnnemy.state === 3)
       && closestEnnemy.state !== 2
       && (teamTrapping === -1 || (ennemyTrapping < teamTrapping
         || (teamTrapping === ennemyTrapping && closestEnnemy.value === ghost.id)))
@@ -235,6 +254,7 @@ export default class Team {
       buster.state = 0;
       return;
     }
+    printErr(ennemyTrapping, teamTrapping, ghost.value);
     if (ennemyTrapping >= teamTrapping) {
       const needed = ennemyTrapping - teamTrapping;
       if (!this.askForHelp(buster, needed)) {
@@ -243,7 +263,7 @@ export default class Team {
       }
     } else {
       ghost.state--;
-      if (ghost.state === 0) {
+      if (ghost.state === 0 && ennemyTrapping < teamTrapping - 1) {
         mapData.release(ghost.id);
       }
     }
@@ -294,7 +314,6 @@ export default class Team {
       if (currentBuster.state !== 1 && (currentBuster.state !== 2 || currentBuster.value === 1)
         && (!currentBuster.helping || currentBuster.helpingOn === ghost.id)
         && currentBuster.id !== buster.id) {
-        // currentBuster.bust(buster.value);
         const distance = getDistance2([currentBuster.x, currentBuster.y], [ghost.x, ghost.y]);
         const nbTurnToGo = Math.ceil((distance - 1760) / 800);
         if (ghost.state - ghost.value * nbTurnToGo > 0
@@ -359,6 +378,7 @@ export default class Team {
     printErr(buster.id, 'goToBase');
     const baseX = ennemy ? this.ennemyX : this.x;
     const baseY = ennemy ? this.ennemyY : this.y;
+    const roundFunc = roundForBase(baseX);
     if ((buster.x - baseX) !== 0) {
       const a = (buster.y - baseY) / (buster.x - baseX);
       const b = buster.y - a * buster.x;
@@ -367,10 +387,10 @@ export default class Team {
       const C = Math.pow(baseX, 2) +
         Math.pow((b - baseY), 2) - Math.pow(1597, 2);
       const delta = Math.pow(B, 2) - 4 * A * C;
-      const x1 = Math.round((- B - Math.sqrt(delta)) / (2 * A));
-      const x2 = Math.round((- B + Math.sqrt(delta)) / (2 * A));
-      const y1 = Math.round(a * x1 + b);
-      const y2 = Math.round(a * x2 + b);
+      const x1 = roundFunc((- B - Math.sqrt(delta)) / (2 * A));
+      const x2 = roundFunc((- B + Math.sqrt(delta)) / (2 * A));
+      const y1 = roundFunc(a * x1 + b);
+      const y2 = roundFunc(a * x2 + b);
       const distance1 = getDistance2([buster.x, buster.y], [x1, y1]);
       const distance2 = getDistance2([buster.x, buster.y], [x2, y2]);
       printErr(x1, y1, distance1, x2, y2, distance2);

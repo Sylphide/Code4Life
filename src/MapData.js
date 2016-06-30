@@ -2,11 +2,6 @@ import Entity from './Entity';
 import Cell from './Cell';
 import { getSighed } from './Utils';
 
-export const quickAccess = {
-  topRight: 7,
-  bottomLeft: 40
-};
-
 class MapData {
 
   constructor() {
@@ -27,25 +22,18 @@ class MapData {
   setMyTeamId(id) {
     this.myTeamId = id;
     if (id === 0) {
-      quickAccess.myBase = 0;
-      quickAccess.base = {
-        x: 0,
-        y: 0
-      };
-      quickAccess.ennemyBase = 47;
+      this.grid[0].noGhost = true;
     } else {
-      quickAccess.myBase = 47;
-      quickAccess.base = {
-        x: 16000,
-        y: 9000
-      };
-      quickAccess.ennemyBase = 0;
+      this.grid[47].noGhost = true;
     }
   }
 
   clearInstantData() {
     this.sighedGhosts = [];
     this.sighedBusters = [];
+    this.grid.forEach((cell) => {
+      cell.searched = false;
+    });
   }
 
   createOrUpdateGhost(id, x, y, state, value) {

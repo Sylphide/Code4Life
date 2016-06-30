@@ -1,5 +1,5 @@
 import { mapData } from './MapData';
-import { getDistance2 } from './Utils';
+import { getDistance2, cleanCoords } from './Utils';
 
 export default class Entity {
 
@@ -17,8 +17,9 @@ export default class Entity {
   }
 
   goTo(x, y) {
-    this.action = `MOVE ${x} ${y}`;
-    this.destination = { x, y };
+    const { x: cleanX, y: cleanY } = cleanCoords(x, y);
+    this.action = `MOVE ${cleanX} ${cleanY}`;
+    this.destination = { x: cleanX, y: cleanY };
     this.currentAction = 'MOVING';
   }
 
