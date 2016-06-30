@@ -28,7 +28,7 @@ export default class Entity {
   }
 
   release() {
-    this.action = 'RElEASE';
+    this.action = 'RELEASE';
     this.destination = null;
     mapData.release(this.value);
     mapData.score++;

@@ -116,9 +116,13 @@ export default class Team {
         let closest;
         let minDist;
         inSigh.forEach(({ currentEntity, currentDist }) => {
-          const nbTurnToGo = Math.ceil((currentDist - 1760) / 800);
+          // const nbTurnToGo = Math.ceil((currentDist - 1760) / 800);
           if (!currentEntity.giveUp &&
-            (!closest || (currentEntity.state < closest.state && closest.state - closest.value * nbTurnToGo > 0))) {
+            (!closest
+              // || (currentEntity.state < closest.state && closest.state - closest.value * nbTurnToGo > 0)
+              || currentEntity.state < closest.state
+              || currentDist < minDist
+            )) {
             closest = currentEntity;
             minDist = currentDist;
           }
@@ -176,7 +180,7 @@ export default class Team {
       let minDist = 100000;
       this.busters.forEach((currentBuster) => {
         const distance = getDistance(buster, currentBuster);
-        if (currentBuster.state === 1 && distance < minDist) {
+        if (currentBuster.state === 1 && currentBuster.action !== 'RELEASE' && distance < minDist) {
           carryingBuster = currentBuster;
           minDist = distance;
         }
@@ -361,7 +365,7 @@ export default class Team {
       const A = 1 + Math.pow(a, 2);
       const B = 2 * (a * (b - baseY) - baseX);
       const C = Math.pow(baseX, 2) +
-        Math.pow((b - baseY), 2) - Math.pow(1500, 2);
+        Math.pow((b - baseY), 2) - Math.pow(1597, 2);
       const delta = Math.pow(B, 2) - 4 * A * C;
       const x1 = Math.round((- B - Math.sqrt(delta)) / (2 * A));
       const x2 = Math.round((- B + Math.sqrt(delta)) / (2 * A));
@@ -369,6 +373,7 @@ export default class Team {
       const y2 = Math.round(a * x2 + b);
       const distance1 = getDistance2([buster.x, buster.y], [x1, y1]);
       const distance2 = getDistance2([buster.x, buster.y], [x2, y2]);
+      printErr(x1, y1, distance1, x2, y2, distance2);
       if (distance1 < distance2) {
         buster.goTo(x1, y1);
         return distance1;
@@ -377,7 +382,9 @@ export default class Team {
       return distance2;
     }
     buster.goTo(buster.x, Math.abs(baseY - 1600));
-    return getDistance2([buster.x, buster.y], [buster.x, Math.abs(baseY - 1600)]);
+    const distance = getDistance2([buster.x, buster.y], [buster.x, Math.abs(baseY - 1600)]);
+    printErr(buster.x, Math.abs(baseY - 1600), distance);
+    return distance;
   }
 
   toString() {

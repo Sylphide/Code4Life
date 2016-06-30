@@ -1,7 +1,7 @@
 import { mapData } from './MapData';
 
 export function getDistance2([x1, y1], [x2, y2]) {
-  return Math.round(Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2)));
+  return Math.ceil(Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2)));
 }
 
 export function getDistance(entity1, entity2) {
