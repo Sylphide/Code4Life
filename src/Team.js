@@ -70,7 +70,9 @@ export default class Team {
   makeDecision() {
     this.busters.forEach((buster) => {
       const distanceToBase = getDistance2([buster.x, buster.y], [this.x, this.y]);
-      printErr(distanceToBase);
+      if (buster.helping) {
+        printErr(buster.id, 'Helping', buster.helpingOn);
+      }
       if (distanceToBase < 4000) {
         this.updateStealers(buster);
       }
@@ -88,15 +90,13 @@ export default class Team {
           return;
         }
 
-        // let { closest: closestEnnemy, minDist: ennemyDistance }
-        //   = getClosestFrom(buster, mapData.sighedBusters, [this.ennemyX, this.ennemyY]);
-        // if (!closestEnnemy) {
-        const { closest: closestEnnemy, minDist: ennemyDistance }
-          = getClosest(buster, mapData.sighedBusters);
-        // }
-        if (closestEnnemy
-          // && (closestEnnemy.state === 1 || closestEnnemy.state === 3)
-          && closestEnnemy.state !== 2) {
+        let { closest: closestEnnemy, minDist: ennemyDistance }
+          = getClosest(buster, mapData.sighedBusters, -1, [0, 2, 3]);
+        if (!closestEnnemy || ennemyDistance > 1760) {
+          ({ closest: closestEnnemy, minDist: ennemyDistance }
+            = getClosest(buster, mapData.sighedBusters, -1, [2]));
+        }
+        if (closestEnnemy) {
           if (ennemyDistance < 1760
             && buster.isStunAvailable()) {
             buster.stun(closestEnnemy.id);
@@ -159,6 +159,18 @@ export default class Team {
               buster.state = 3;
             }
           } else if (minDist < 900) {
+            const ennemyInSigh = getSighed(buster, mapData.sighedBusters);
+            let countEnnemies = 0;
+            ennemyInSigh.forEach((ennemy) => {
+              const ennemyToGhost = getDistance(ennemy, closest);
+              if (ennemyToGhost > 900 && ennemyToGhost < 1760) {
+                countEnnemies++;
+              }
+            });
+            if (countEnnemies > 0) {
+              this.goToBase(buster, true);
+              return;
+            }
             this.goToBase(buster);
           } else {
             const nbTurnToGo = Math.ceil((minDist - 1760) / 800);
@@ -192,7 +204,6 @@ export default class Team {
       return true;
     }
 
-    printErr(getDistance2([buster.x, buster.y], [this.ennemyX, this.ennemyY]));
     if (buster.roam && getDistance2([buster.x, buster.y], [this.ennemyX, this.ennemyY]) < 3000) {
       this.roam(buster);
       printErr('Roaming', buster.goingLeft);
@@ -255,7 +266,6 @@ export default class Team {
       const distMeToHim = getDistance(buster, sighedBuster);
       const distMeToBase = getDistance2([buster.x, buster.y], [this.x, this.y]);
       const distHimToBase = getDistance2([sighedBuster.x, sighedBuster.y], [this.x, this.y]);
-      printErr(sighedBuster.id, distHimToBase);
       let found = false;
       mapData.stealers.forEach((stealer) => {
         if (stealer.id === sighedBuster.id) {
@@ -278,22 +288,23 @@ export default class Team {
       }
     });
     this.closestBusters.sort((buster1, buster2) => {
-      const distance1 = getDistance(buster, buster1);
-      const distance2 = getDistance(buster, buster2);
-      if (distance1 < distance2) {
+      const nbTurnToGo1 = Math.ceil((getDistance(buster, buster1) - 950) / 800);
+      const nbTurnToGo2 = Math.ceil((getDistance(buster, buster2) - 950) / 800);
+      if (nbTurnToGo1 + buster1.stunCD < nbTurnToGo2 + buster2.stunCD) {
         return -1;
-      } else if (distance1 > distance2) {
+      } else if (nbTurnToGo1 + buster1.stunCD > nbTurnToGo2 + buster2.stunCD) {
         return 1;
       }
       return 0;
     });
     this.closestBusters.forEach((currentBuster, index) => {
       printErr('Will help?', currentBuster.id);
-      if (index < wanted) {
+      const nbTurnToGo = Math.ceil((getDistance(buster, currentBuster) - 950) / 800);
+      if (index < wanted && nbTurnToGo > currentBuster.stunCD) {
         currentBuster.helping = true;
         const distMeToHim = getDistance(buster, currentBuster);
         const { closest: closestEnnemy, minDist: ennemyDistance }
-          = getClosest(currentBuster, mapData.sighedBusters, -1, 2);
+          = getClosest(currentBuster, mapData.sighedBusters, -1, [2]);
         printErr('Helping', currentBuster.id, ennemyDistance);
         if (closestEnnemy
           && ennemyDistance < 1760 && currentBuster.isStunAvailable()) {
@@ -329,8 +340,8 @@ export default class Team {
   carryingDecision(buster) {
     // Carrying
     mapData.release(buster.value);
-    printErr('Stealers', mapData.stealers.map((stealer) => stealer.id));
     if (mapData.stealers.length > 0) {
+      printErr('Stealers', mapData.stealers.map((stealer) => stealer.id));
       const closeBusters = this.askProtection(buster, mapData.stealers.length - 1);
       const distanceToBase = getDistance([buster.x, buster.y], [this.x, this.y]);
       if (distanceToBase < 4000 && (closeBusters < mapData.stealers.length - 1 || !buster.isStunAvailable())) {
@@ -344,13 +355,10 @@ export default class Team {
       return;
     }
     const { closest: closestEnnemy, minDist: ennemyDistance }
-      = getClosest(buster, mapData.sighedBusters, -1, 2);
+      = getClosest(buster, mapData.sighedBusters, -1, [2]);
     if (closestEnnemy) {
       printErr('Avoid?', closestEnnemy.id);
-      // const ennemyToBase = getDistance2([closestEnnemy.x, closestEnnemy.y], [this.x, this.y]);
-      // const distanceToBase = getDistance2([buster.x, buster.y], [this.x, this.y]);
       if (ennemyDistance > 1760
-        // && ennemyToBase < distanceToBase
       ) {
         this.avoid(buster, closestEnnemy);
         return;
@@ -360,39 +368,22 @@ export default class Team {
         printErr('Stun first!', closestEnnemy.id);
         return;
       }
+      // const oppositePosition = getNextPos([closestEnnemy.x, closestEnnemy.y], [buster.x, buster.y], 1800);
+      // buster.goTo(oppositePosition.x, oppositePosition.y);
       printErr('Too close :(', closestEnnemy.id);
+      // return;
     }
-    // if (!this.passeLaBalle(buster)) {
     this.goToBase(buster);
-    // }
     return;
   }
 
-  // passeLaBalle(buster) {
-  //   const { closest: closestTeam, minDist: teamDistance }
-  //     = getClosest(buster, this.busters, buster.id);
-  //   if (closestTeam) {
-  //     const distanceToBaseMe = getDistance2([buster.x, buster.y], [this.x, this.y]);
-  //     const distanceToBaseTeam = getDistance2([closestTeam.x, closestTeam.y], [this.x, this.y]);
-  //     if (distanceToBaseMe > distanceToBaseTeam && teamDistance < 1760 && teamDistance > 800) {
-  //       buster.release();
-  //       mapData.score--;
-  //       closestTeam.bust(buster.value);
-  //       printErr(closestTeam.id, 'busting', buster.value);
-  //       mapData.createOrUpdateGhost(buster.value, buster.x, buster.y, 0, 1);
-  //       return true;
-  //     }
-  //   }
-  //   return false;
-  // }
-
   shouldDefendLast(buster) {
     if (mapData.score === ((mapData.nbGhosts - 1) / 2)) {
+      printErr('Last ghost needed to win!');
       let carryingBuster = null;
       let minDist = 100000;
       this.busters.forEach((currentBuster) => {
         const distance = getDistance(buster, currentBuster);
-        // printErr(currentBuster.action);
         if (currentBuster.state === 1 && currentBuster.action !== 'RELEASE' && distance < minDist) {
           carryingBuster = currentBuster;
           minDist = distance;
@@ -401,7 +392,7 @@ export default class Team {
       if (carryingBuster) {
         printErr(buster.id, 'Defend', carryingBuster.id);
         const { closest: closestEnnemy, minDist: ennemyDistance }
-          = getClosest(buster, mapData.sighedBusters, -1, 2);
+          = getClosest(buster, mapData.sighedBusters, -1, [2]);
         if (closestEnnemy
           && ennemyDistance < 1760 && buster.isStunAvailable()) {
           buster.stun(closestEnnemy.id);
@@ -411,6 +402,7 @@ export default class Team {
         }
         return 2;
       }
+      printErr('No carry :(', this.busters.map((currentBuster) => currentBuster.toString()));
       return 1;
     }
     return 0;
@@ -449,7 +441,6 @@ export default class Team {
       buster.state = 0;
       return;
     }
-    printErr(ennemyTrapping, teamTrapping, ghost.value);
     if (ennemyTrapping >= teamTrapping) {
       const needed = ennemyTrapping - teamTrapping;
       if (!this.askForHelp(buster, needed)) {
@@ -465,7 +456,7 @@ export default class Team {
   }
 
   avoid(buster, ennemy) {
-    printErr(buster.id, 'avoid');
+    printErr(buster.id, 'avoid', ennemy.id);
 
     const nextPosToBase = getNextPos([buster.x, buster.y], [this.x, this.y]);
     const nextPosToEnnemyDistance = getDistance2([nextPosToBase.x, nextPosToBase.y], [ennemy.x, ennemy.y]);
@@ -496,7 +487,6 @@ export default class Team {
       y1 = buster.y + Math.floor(Math.sqrt(ennemyRange - Math.pow(((2 * c - Math.pow(a, 2)) / (2 * a)), 2)));
       y2 = buster.y - Math.floor(Math.sqrt(ennemyRange - Math.pow(((2 * c - Math.pow(a, 2)) / (2 * a)), 2)));
     }
-    printErr(ennemy.id, buster.id, a, b, c, delta, x1, x2, y1, y2);
     const distance1 = getDistance2([this.x, this.y], [x1, y1]);
     const distance2 = getDistance2([this.x, this.y], [x2, y2]);
     if (distance1 < distance2) {
@@ -542,6 +532,7 @@ export default class Team {
       });
       return true;
     }
+    printErr('Giving up', buster.value);
     return false;
   }
 
@@ -596,7 +587,6 @@ export default class Team {
       const y2 = roundFunc(a * x2 + b);
       const distance1 = getDistance2([buster.x, buster.y], [x1, y1]);
       const distance2 = getDistance2([buster.x, buster.y], [x2, y2]);
-      printErr(x1, y1, distance1, x2, y2, distance2);
       if (distance1 < distance2) {
         buster.goTo(x1, y1);
         return distance1;
@@ -606,7 +596,6 @@ export default class Team {
     }
     buster.goTo(buster.x, Math.abs(baseY - 1600));
     const distance = getDistance2([buster.x, buster.y], [buster.x, Math.abs(baseY - 1600)]);
-    printErr(buster.x, Math.abs(baseY - 1600), distance);
     return distance;
   }
 

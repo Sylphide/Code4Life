@@ -8,12 +8,12 @@ export function getDistance(entity1, entity2) {
   return getDistance2([entity1.x, entity1.y], [entity2.x, entity2.y]);
 }
 
-export function getClosest(entity, entities, exceptId = -1, exceptState = -1) {
+export function getClosest(entity, entities, exceptId = -1, exceptState = []) {
   let minDist = 100000;
   let closest = null;
   entities.forEach((currentEntity) => {
     const currentDist = getDistance(entity, currentEntity);
-    if (minDist > currentDist && currentEntity.id !== exceptId && currentEntity.state !== exceptState) {
+    if (minDist > currentDist && currentEntity.id !== exceptId && exceptState.indexOf(currentEntity.state) === -1) {
       minDist = currentDist;
       closest = currentEntity;
     }
@@ -119,7 +119,6 @@ export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799) {
     const y2 = roundFunc.roundY(a * x2 + b);
     const distance1 = getDistance2([destX, destY], [x1, y1]);
     const distance2 = getDistance2([destX, destY], [x2, y2]);
-    printErr(x1, y1, distance1, x2, y2, distance2);
     if (distance1 < distance2) {
       return {
         x: x1,
