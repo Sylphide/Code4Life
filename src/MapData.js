@@ -8,6 +8,8 @@ class MapData {
     this.ghosts = [];
     this.grid = [];
     this.stealers = [];
+    this.nbBusterDesperate = 0;
+    this.turn = 0;
     this.score = 0;
     for (let i = 0; i < 48; i++) {
       const x = 1000 + 2000 * (i % 8);

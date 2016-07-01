@@ -12,6 +12,7 @@ mapData.setMyTeamId(myTeamId);
 // game loop
 while (true) {
   const entities = parseInt(readline()); // the number of busters and ghosts visible to you
+  mapData.turn++;
   mapData.clearInstantData();
   for (let i = 0; i < entities; i++) {
     const inputs = readline().split(' ');
@@ -30,6 +31,7 @@ while (true) {
   mapData.cleanFalseGhost(myTeam.busters);
   myTeam.updateHasGhost();
   mapData.printErr();
+  printErr('Turn', mapData.turn);
   printErr('myTeam', myTeam.toString());
 
   myTeam.makeDecision();
