@@ -101,7 +101,7 @@ class MapData {
       this.sighedGhosts.forEach((sighedGhost) => {
         const specialId = -(sighedGhost.id + 1);
         const distanceToBase = getDistance2([sighedGhost.x, sighedGhost.y], [this.x, this.y]);
-        if (!this.getGhost(specialId) && distanceToBase > 6000) { // ATTENTION IMPACT best known 5000
+        if (!this.getGhost(specialId) && distanceToBase > 5000 && sighedGhost.state > 0) { // ATTENTION IMPACT best known 5000
           const oppositeGhost = {
             x: 2 * center.x - sighedGhost.x,
             y: 2 * center.y - sighedGhost.y
@@ -112,7 +112,7 @@ class MapData {
     }
 
     busters.forEach((buster) => {
-      const inSigh = getSighed(buster, this.ghosts);
+      const inSigh = getSighed(buster, this.ghosts, 2000);
       inSigh.forEach(({ currentEntity }) => {
         let isRealGhost = false;
         this.sighedGhosts.forEach((sighedGhost) => {

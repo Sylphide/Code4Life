@@ -8,12 +8,14 @@ export function getDistance(entity1, entity2) {
   return getDistance2([entity1.x, entity1.y], [entity2.x, entity2.y]);
 }
 
-export function getClosest(entity, entities, exceptId = -1, exceptState = []) {
+export function getClosest(entity, entities, exceptId = -1, exceptState = [], withStun = false) {
   let minDist = 100000;
   let closest = null;
   entities.forEach((currentEntity) => {
     const currentDist = getDistance(entity, currentEntity);
-    if (minDist > currentDist && currentEntity.id !== exceptId && exceptState.indexOf(currentEntity.state) === -1) {
+    if (minDist > currentDist && currentEntity.id !== exceptId
+      && exceptState.indexOf(currentEntity.state) === -1
+      && (!withStun || currentEntity.stunCD < 2)) {
       minDist = currentDist;
       closest = currentEntity;
     }
@@ -41,11 +43,11 @@ export function getClosestFrom(buster, ennemies, [baseX, baseY]) {
   };
 }
 
-export function getSighed(entity, entities) {
+export function getSighed(entity, entities, range = 2200) {
   const result = [];
   entities.forEach((currentEntity) => {
     const currentDist = getDistance(entity, currentEntity);
-    if (currentDist < 2200) {
+    if (currentDist < range) {
       result.push({
         currentEntity,
         currentDist
