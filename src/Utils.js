@@ -103,7 +103,7 @@ function roundForDest(sourceX, sourceY, destX, destY) {
   };
 }
 
-export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799) {
+export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799, opposite = false) {
   const roundFunc = roundForDest(sourceX, sourceY, destX, destY);
   if ((sourceX - destX) !== 0) {
     const a = (sourceY - destY) / (sourceX - destX);
@@ -119,7 +119,7 @@ export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799) {
     const y2 = roundFunc.roundY(a * x2 + b);
     const distance1 = getDistance2([destX, destY], [x1, y1]);
     const distance2 = getDistance2([destX, destY], [x2, y2]);
-    if (distance1 < distance2) {
+    if (distance1 < distance2 || (opposite && distance1 >= distance2)) {
       return {
         x: x1,
         y: y1
@@ -132,6 +132,6 @@ export function getNextPos([sourceX, sourceY], [destX, destY], dist = 799) {
   }
   return {
     x: sourceX,
-    y: sourceY < destY ? sourceY + 800 : sourceY - 800
+    y: sourceY < destY || (opposite && destY >= sourceY) ? sourceY + 800 : sourceY - 800
   };
 }
